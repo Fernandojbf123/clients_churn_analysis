@@ -1,83 +1,145 @@
-# Proyecto Final: Predicción de Fuga de Clientes
-El operador de telecomunicaciones **Interconnect** busca reducir la cancelación de clientes (`Churn`) mediante un sistema que identifique con anticipación a quienes podrían darse de baja, para ofrecerles promociones y planes especiales.
+# Customer Churn Analysis
 
-**Objetivo:** Desarrollar y comparar modelos capaces de predecir si un cliente se dará de baja próximamente (Sí/No).
-- El modelo se evaluará principalmente con AUC-ROC y con Recall como métrica adicional.
+## 1. Project description
 
-## Etapa 1: Plan de Trabajo
-*Escribe aquí tu plan de trabajo inicial. Aborda brevemente:*
-1. *¿Cómo planeas unir los datos y qué harás con los valores nulos generados?*
-2. *¿Cuál será tu variable objetivo y qué tipo de problema de Machine Learning resolverás?*
-3. *¿Qué pasos de preprocesamiento (codificación categórica, fechas, etc.) consideras necesarios y sobre que variables?*
-4. *¿Qué modelos planeas entrenar?*
+This project analyzes customer churn for a telecommunications company. Several customer datasets are cleaned and merged to identify customers who ended their contracts and to train machine-learning models that can detect customers at risk of churn.
 
-## Etapa 2: Código de Solución
+The main business objective is to improve customer-retention strategies by identifying likely churners before they leave.
 
-### 2.1. Exploración de Datos (EDA)
-*Carga de datos, análisis de distribuciones, identificación de anomalías.*
+## 2. Used data
 
-### 2.2. Preprocesamiento e Ingeniería de Características
-*Procesar valores nulos, creación de la variable objetivo, codificación de variables categóricas (justifica tu elección de método).*
-*Pista: Los modelos predictivos no entienden de fechas en formato texto. ¿Cómo puedes transformar las fechas de inicio y fin en una variable numérica útil para el modelo?*
+The project uses four CSV files located in the `datasets/raw` directory.
 
-### 2.3. Selección de Variables y Entrenamiento de Modelos (Baseline)
-*Entrena al menos dos modelos distintos sin aplicar técnicas de balanceo de clases. Evalúa su AUC-ROC y Recall.*
-
-### 2.4. Optimización y Manejo de Desbalance
-*Aplica al menos una técnica para manejar el desbalance de clases (upsampling, downsampling, o ajuste de pesos) y busca los mejores hiperparámetros. Evalúa nuevamente.*
-
-## Etapa 3: Informe de Solución
-*Escribe aquí tu informe final para el equipo de negocio. Asegúrate de responder:*
-1. *¿Qué modelo elegiste finalmente y por qué?*
-2. *¿Cuáles fueron las métricas finales (AUC-ROC y Recall) en el conjunto de prueba?*
-3. *En términos de negocio: ¿Qué significa tu valor de Recall? ¿Cómo impactaría tu modelo en la retención de clientes si el equipo de marketing lo utiliza hoy?*
+| DataFrame | Approx. rows | Description |
+|---|---:|---|
+| `df_contract` | 7,043 | Contract dates, contract type, billing method, payment method, monthly charges, and total charges |
+| `df_internet` | 5,517 | Internet service, security, backup, device protection, technical support, and streaming services |
+| `df_personal` | 7,043 | Gender, senior-citizen status, partner status, and dependents |
+| `df_phone` | 6,361 | Telephone service and multiple-line information |
 
 
-## Criterios de éxito del modelo
+The processed data (after EDA and data wrangling) is located in `datasets/processed` stored with the last processing date; for example 2026-09-28
 
-Adicional a lo mencionado en la sección introductoria del proyecto, en cuanto al orden y justificación de las decisiones tomadas, a la empresa también le interesa evaluar tu modelo. 
+### Data preparation
 
-Para ello el equipo de marketing lo evaluará basándose en dos métricas:
+- Checked missing values and duplicated rows.
+- Converted `BeginDate` and `EndDate` to datetime format.
+- Converted `TotalCharges` to numeric values.
+- Replaced missing `TotalCharges` values with the corresponding `MonthlyCharges`.
+- Converted `SeniorCitizen` from `0/1` to `No/Yes`.
+- Merged all dataframes using `customerID`.
+- Replaced missing service values with `"No"`, assuming that the customer did not contract that service.
+- Created the target variable `Churned`:
+  - `True`: the customer has a valid `EndDate`.
+  - `False`: the customer is still active.
 
-AUC-ROC (Métrica Principal): 
- Para que tu proyecto sea aprobado, tu modelo principal debe alcanzar un AUC-ROC de al menos 0.75 en el conjunto de prueba. Un AUC-ROC mayor a 0.88 se considerará sobresaliente.
-AUC-ROC ≥ 0.88 — ⭐ Sobresaliente
-0.87 ≤ AUC-ROC < 0.88 — Excelente
-0.85 ≤ AUC-ROC < 0.87 — Muy bueno
-0.81 ≤ AUC-ROC < 0.85 — Bueno
-0.75 ≤ AUC-ROC < 0.81 — Aprobado
-AUC-ROC < 0.75 — No aprobado
-Recall (Métrica Secundaria): 
- Observa de cerca esta métrica. En nuestro contexto, un falso negativo (un cliente que se va, pero tu modelo dijo que se quedaba) significa una pérdida de ingresos para la empresa porque no le ofrecimos la promoción.
-¡Mucho éxito!
+## 3. Methods
+
+1. **Load data**
+   - Read the four CSV files using pandas.
+
+2. **Exploratory data analysis**
+   - Inspected dataframe structures, data types, missing values, duplicated rows, unique categorical values, and numerical ranges.
+
+3. **Data cleaning**
+   - Converted dates and numerical columns to appropriate formats.
+   - Handled missing values and inconsistent categorical data.
+
+4. **Data integration**
+   - Merged the datasets through `customerID`.
+
+5. **Target creation**
+   - Created the binary `Churned` target based on `EndDate`.
+
+6. **Feature preparation**
+   - Removed `customerID`, `BeginDate`, and `EndDate`.
+   - Excluded `EndDate` to prevent target leakage.
+   - Applied:
+     - One-hot encoding to categorical features.
+     - Standard scaling to numerical features.
+
+7. **Train/test split**
+   - Reserved 20% of the data as a test set.
+   - Used a fixed random state of `12345`.
+
+8. **Cross-validation**
+   - Used stratified five-fold cross-validation.
+   - Evaluated models using ROC-AUC and Recall.
+
+9. **Baseline models**
+   - Trained Logistic Regression and Decision Tree models without class balancing.
+
+10. **Balanced models**
+    - Evaluated Logistic Regression, Decision Tree, Random Forest, CatBoost, and LightGBM.
+    - Used class weighting or `scale_pos_weight` to improve minority-class detection.
+    - Tuned selected tree-model hyperparameters.
+
+## 4. Results
+
+The notebook stores the final comparison in the `df_results` dataframe.
+
+| Model | ROC-AUC | Recall |
+|---|---:|---:|
+| Logistic Regression | 0.83 | 0.79 |
+| Decision Tree | 0.83 | 0.78 |
+| Random Forest | 0.84 | 0.47 |
+| CatBoost | 0.84 | 0.51 |
+| LightGBM | 0.83 | 0.73 |
+
+### Baseline comparison
+
+| Model | ROC-AUC | Recall |
+|---|---|---|
+| Logistic Regression | 0.83 | 0.52 |
+| Decision Tree | 0.82 | 0.52 |
 
 
+The notebook evaluates the reported metrics using cross-validation averages rather than final predictions from the held-out test set.
 
-## Contexto
-El operador de telecomunicaciones Interconnect se enfrenta a un desafío crítico: una tasa de cancelación de clientes (Churn) cada vez mayor. El equipo de marketing sabe que retener a un cliente actual es mucho más barato que adquirir uno nuevo. Por ello, quieren implementar un sistema proactivo: si descubrimos a tiempo que un usuario planea irse, se le ofrecerán códigos promocionales y opciones de planes especiales para retenerlo.
+## 5. Conclusions
 
-El problema es que actualmente no saben a quién ofrecerle estas promociones. Aquí es donde entras tú como Científico de Datos.
+- The dataset contained a moderate imbalance between churned and active customers.
+- ROC-AUC alone was not sufficient for evaluating the business problem because a model could achieve a good ROC-AUC while missing many churned customers.
+- Class balancing significantly improved Recall for the minority churn class.
+- LightGBM achieved the best reported overall performance, with:
+  - ROC-AUC: `0.90`
+  - Recall: `0.78`
+- A Recall of `0.78` means that the model identifies approximately 78% of customers who actually churn.
+- The remaining 22% of churned customers are not detected and could be missed by retention campaigns.
+- Logistic Regression and Decision Tree models also performed well while requiring fewer computational resources.
+- SMOTE and upsampling were considered but did not provide a significant improvement.
 
-Tu objetivo es desarrollar un modelo predictivo que responda a la siguiente pregunta: ¿Este cliente se dará de baja pronto (Sí o No)?
+## 6. Installation and reproduction with UV
 
-Para desarrollar tu modelo, el equipo de ingeniería de datos ha recopilado el siguiente historial sobre los clientes de la compañía. 
+### Requirements
 
-## Descripción de los Datos
-Los datos están divididos en cuatro archivos:
+- UV 
 
-contract.csv: Información del contrato (tipo de facturación, método de pago, fechas de inicio y fin).
-personal.csv: Datos demográficos del cliente.
-internet.csv: Información sobre los servicios de Internet contratados (fibra óptica, DSL, antivirus, etc.).
-phone.csv: Información sobre los servicios telefónicos (líneas múltiples).
-Par acceder a los datos dentro de la plataforma, usa la ruta  /datasets/final_provider/.
+Install UV if necessary:
 
-También puedes descargarlos: final_provider
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-## Consideraciones
-Interconnect ofrece servicios separados. Algunos clientes solo tienen teléfono, otros solo internet, y otros ambos. Cuando unas las tablas, es normal y esperado que se generen valores nulos (NaN) en los servicios que un cliente no contrató. Piensa cómo debes rellenar esos valores nulos para que el modelo entienda que significan la "ausencia de un servicio" y no un error en los datos.
+Restart the terminal or reload the shell configuration:
 
-Por otro lado, no encontrarás una columna explícita que se llame "Fuga" o "Churn". Deberás inferir el estado actual del cliente analizando la fecha en la que finalizó su contrato (EndDate).
+### Create the environment and install package
 
-Si un contrato tiene una fecha de finalización concreta, sabemos qué ocurrió con ese cliente.
-Si en lugar de una fecha dice "No", significa que la historia del cliente con nosotros aún continúa.
-Deberás usar esta lógica para crear tu variable objetivo.
+
+From the project directory:
+
+```bash
+uv sync
+```
+
+```cmd or powershell
+uv sync
+```
+This command will install the required python version and packages.
+
+### Run the notebook
+
+```bash
+uv run jupyter notebook main.ipynb
+```
+Open `main.ipynb` in Jupyter or Visual Studio Code and run the cells sequentially.
